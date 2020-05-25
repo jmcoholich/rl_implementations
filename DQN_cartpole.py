@@ -43,16 +43,12 @@ class DQN_agent:
         self.batch_size = 2048
         self.discount_factor = 1.0
         self.epsilon_lb = 0.0
-        self.epsilon_ub = 1.0
-        self.num_episodes = 1000
+        self.epsilon_ub = 0.3
+        self.num_episodes = 100
         self.epochs = 1
 
-    def add_to_buffer(self, observation, action, reward, done):
-        if self.idx == 0: #don't update the previous step, since there is none
-            self.replay_buffer[self.idx] = np.concatenate((observation,action,reward, done, np.zeros(4))) 
-        else:
-            self.replay_buffer[self.idx] = np.concatenate((observation,action,reward, done, np.zeros(4))) 
-            self.replay_buffer[self.idx - 1,7:11] =  observation # update the previous step's "next state"
+    def add_to_buffer(self, observation, action, reward, done, next_observation):
+        self.replay_buffer[self.idx] = np.concatenate((observation,action,reward, done, next_observation)) 
         self.idx += 1
         
     def sample_from_buffer(self):
@@ -91,13 +87,13 @@ class DQN_agent:
         if random.random() < epsilon: # Pick random action
             return random.getrandbits(1)
         else: #pick action based on argmax of fwd pass of DQN
-            return int(np.argmin(self.model(np.expand_dims(observation,0))))
+            return int(np.argmax(self.model(np.expand_dims(observation,0))))
 
 
 # Now do stuff
 
 # Define stuff
-def do_training(already_trained_model):
+def do_training(already_trained_model = None):
     env = gym.make('CartPole-v1')
     dqn = DQN_agent(already_trained_model)
 
@@ -111,10 +107,12 @@ def do_training(already_trained_model):
             epsilon = dqn.epsilon_ub - (i/dqn.num_episodes)*(dqn.epsilon_ub - dqn.epsilon_lb) 
             action = dqn.pick_action(observation, epsilon)
            
-            observation, reward, done, _ = env.step(action)
+            next_observation, reward, done, _ = env.step(action)
             step_counter +=1
         
-            dqn.add_to_buffer(observation, np.array([action]), np.array([reward]), np.array([done]))
+            dqn.add_to_buffer(observation, np.array([action]), np.array([reward]), np.array([done]), next_observation)
+
+            observation = next_observation
 
             if done:
                 break
@@ -141,8 +139,8 @@ def do_testing(test_model):
         while True: 
             # env.render()
             # print(model(np.expand_dims(observation,0)))
-            # print(np.argmin(model(np.expand_dims(observation,0))))
-            action = np.argmin(model(np.expand_dims(observation,0)))
+            # print(np.argmax(model(np.expand_dims(observation,0))))
+            action = np.argmax(model(np.expand_dims(observation,0)))
            
             observation, reward, done, _ = env.step(action)
             step_counter +=1
@@ -157,8 +155,8 @@ def do_testing(test_model):
     print('Final average reward is', np.mean(reward_history))
 
 
-# do_testing('test.h5')
+do_testing('test.h5')
 
-do_training()
+# do_training('test.h5')
 
 
