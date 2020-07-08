@@ -6,6 +6,8 @@ import random
 import numpy as np
 import tensorflow as tf
 import sys
+import matplotlib.pyplot as plt
+# import wandb
 
 # Resources used: 
 # https://towardsdatascience.com/dqn-part-1-vanilla-deep-q-networks-6eb4a00febfb (main one)
@@ -40,7 +42,7 @@ class DQN_agent:
 
 
         # Training params
-        self.batch_size = 2048
+        self.batch_size = 99999999999999999999999999999999999
         self.discount_factor = 1.0
         self.epsilon_lb = 0.0
         self.epsilon_ub = 0.3
@@ -81,13 +83,22 @@ class DQN_agent:
 
         batch_X, batch_Y = self.sample_from_buffer()
         asdf = self.model.fit(x=batch_X, y=batch_Y, batch_size=self.batch_size, epochs = self.epochs) 
-        # print(asdf.history)
 
     def pick_action(self, observation, epsilon):
         if random.random() < epsilon: # Pick random action
             return random.getrandbits(1)
         else: #pick action based on argmax of fwd pass of DQN
             return int(np.argmax(self.model(np.expand_dims(observation,0))))
+
+    def plot_buffer_data(self):
+        # print(self.replay_buffer[:self.idx,:])
+        fig, axs = plt.subplots(4)
+        names = ['Cart Position','Cart Velocity','Pole Angle','Pole Velocity']
+        for i in range(4):
+            axs[i].hist(self.replay_buffer[:self.idx,i])
+            axs[i].set_title(names[i])
+        plt.tight_layout()
+        plt.grid()
 
 
 # Now do stuff
@@ -123,10 +134,14 @@ def do_training(already_trained_model = None):
         dqn.train()
         print()
 
-    dqn.model.save('test.h5')
+    dqn.model.save('wandbtest.h5')
     dqn.model.summary()
-    test_load_model = tf.keras.models.load_model('test.h5')
-    test_load_model.summary()
+
+    dqn.plot_buffer_data()
+    # wandb.save('wandbtest.h5')
+
+    # test_load_model = tf.keras.models.load_model('test.h5')
+    # test_load_model.summary()
 
 def do_testing(test_model):
     reward_history = np.zeros(100)
@@ -154,9 +169,13 @@ def do_testing(test_model):
 
     print('Final average reward is', np.mean(reward_history))
 
+if __name__ == '__main__':
+    # wandb.init(project = 'dqn_cartpole')
+    # do_testing('test.h5')
 
-do_testing('test.h5')
+    # do_training('test.h5')
 
-# do_training('test.h5')
+    do_training()
+    plt.show()
 
 

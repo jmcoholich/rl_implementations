@@ -1,0 +1,23 @@
+{
+    "root": "/home/jeremiah/Personal_Repo",
+    "program": "DQN_cartpole.py",
+    "git": {
+        "remote": "https://github.gatech.edu/jcoholich3/Personal_Repo.git",
+        "commit": "43616c870f56051c536b354458e32ed0299f641c"
+    },
+    "email": "jcoholich@gatech.edu",
+    "startedAt": "2020-06-04T23:23:59.307943",
+    "host": "jeremiah-Precision-5520",
+    "username": "jeremiah",
+    "executable": "/usr/bin/python3",
+    "os": "Linux-5.3.0-53-generic-x86_64-with-Ubuntu-18.04-bionic",
+    "python": "3.6.9",
+    "cpu_count": 8,
+    "args": [],
+    "state": "finished",
+    "jobType": null,
+    "mode": "run",
+    "project": "dqn_cartpole",
+    "heartbeatAt": "2020-06-04T23:24:06.941386",
+    "exitcode": 0
+}
