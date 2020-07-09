@@ -57,7 +57,7 @@ class VPG:
         self.action_buffer = -np.ones((self.n_samples,500), dtype = 'int8')
         self.reward_buffer = -np.ones((self.n_samples,501), dtype = 'int8')
         self.rewards_to_go = -np.ones((self.n_samples,500))
-        self.advantages    = -np.ones((self.n_samples,500))
+        # self.advantages    = -np.ones((self.n_samples,500))
         self.values        = -np.ones((self.n_samples,500))
         # self.deltas        = -np.ones((self.n_samples,499))
         # self.grad_log_pi   = [[-1 for _ in range(500)] for _ in range(self.n_samples)]
@@ -93,38 +93,33 @@ class VPG:
             for j in range(self.indicies[i]):
                 self.rewards_to_go[i,j] = sum(self.reward_buffer[i,j:self.indicies[i]])
 
-    def calculate_advantages(self):
+    def estimate_advantage(self): # The advantage needs to be estimated for every state-action pair from every trajectory
+        pass
+        # First find the value of every state by doing a fwd pass through the value network
         for i in range(self.n_samples):
             for j in range(self.indicies[i]):
-                self.advantages[i,j] = self.rewards_to_go[i,j] - self.value_network(torch.from_numpy(self.state_buffer[i,j])).detach().numpy()
+                self.values[i,j] = self.value_network(torch.from_numpy(self.state_buffer[i,j]))
 
-    # def estimate_advantage(self): # The advantage needs to be estimated for every state-action pair from every trajectory
-    #     pass
-    #     # First find the value of every state by doing a fwd pass through the value network
-    #     for i in range(self.n_samples):
-    #         for j in range(self.indicies[i]):
-    #             self.values[i,j] = self.value_network(torch.from_numpy(self.state_buffer[i,j]))
+        # Then calculate delta^{V} for every timestep (except for the last one)
+        for i in range(self.n_samples):
+            for j in range(self.indicies[i]-1):
+                self.deltas[i,j] = self.reward_buffer[i,j] + self.gamma*self.values[i,j+1] - self.values[i,j]
 
-    #     # Then calculate delta^{V} for every timestep (except for the last one)
-    #     for i in range(self.n_samples):
-    #         for j in range(self.indicies[i]-1):
-    #             self.deltas[i,j] = self.reward_buffer[i,j] + self.gamma*self.values[i,j+1] - self.values[i,j]
+        # Now loop through every state of each trajectory and calculate the advantage as a sum 
+        for i in range(self.n_samples):
+            for j in range(self.indicies[i]): 
+                self.advantages[i,j] = 0
+                # T = self.indicies[i] -1
+                # t = j
+                for k in range(self.indicies[i]-j):
+                    self.advantages[i,j] += self.deltas[i,j+k]*(1-self.lam**(self.indicies[i]-k-j-1))*(self.gamma*self.lam)**k
 
-    #     # Now loop through every state of each trajectory and calculate the advantage as a sum 
-    #     for i in range(self.n_samples):
-    #         for j in range(self.indicies[i]): 
-    #             self.advantages[i,j] = 0
-    #             # T = self.indicies[i] -1
-    #             # t = j
-    #             for k in range(self.indicies[i]-j):
-    #                 self.advantages[i,j] += self.deltas[i,j+k]*(1-self.lam**(self.indicies[i]-k-j-1))*(self.gamma*self.lam)**k
-
-    #     # print('advantages',self.advantages[0,:self.indicies[0]])
+        # print('advantages',self.advantages[0,:self.indicies[0]])
         # print('actions')
 
     def estimate_policy_grad(self): #need to find gradient of policy network.
         #loop through all  trajectories collected
-        self.calculate_advantages()
+
         total_gradient = [0,0,0,0] #TODO make this general to any architechture 
         # average_value = 0
         # average_rewards_to_go = 0
@@ -143,10 +138,11 @@ class VPG:
                 params = list(self.policy_network.parameters())
 
 
+                value = self.value_network(torch.from_numpy(input_state)).detach().numpy()
                 # average_value += value
                 for k in range(len(total_gradient)):
                     # *** Changed from self.advantages to self.rewards_to_go - value****** 
-                    total_gradient[k] += params[k].grad * (self.advantages[i,j]) 
+                    total_gradient[k] += params[k].grad * (self.rewards_to_go[i,j] - value) 
                     # total_log_prob_gradient[k] = params[k].grad
                     # if i == self.n_samples-1: 
                         # print('SINGLE STEP LOG_PROB_GRAD',total_log_prob_gradient[k])
@@ -309,8 +305,4 @@ if __name__ == '__main__':
         writer_idx +=1 
 
         vpg.reset_reward_buffer()
-
-
-
-
 
