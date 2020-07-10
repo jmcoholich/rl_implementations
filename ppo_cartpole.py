@@ -14,7 +14,7 @@ seed = 2020
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
-writer = SummaryWriter('ppo/' + str(time.time()))
+writer = SummaryWriter('delete/' + str(time.time()))
 
 
 
